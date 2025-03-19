@@ -3,15 +3,10 @@ import pandas as pd
 import plotly.express as px
 import calendar
 import requests
-import os
-from dotenv import load_dotenv
-
-# Load environment variables
-load_dotenv()
 
 # Directus API configuration
-DIRECTUS_API_URL = os.getenv("DIRECTUS_API_URL", "https://cms.falkenbergskallbad.se")
-DIRECTUS_API_TOKEN = os.getenv("DIRECTUS_API_TOKEN")
+DIRECTUS_API_URL = st.secrets.get("DIRECTUS_API_URL", "https://cms.falkenbergskallbad.se")
+DIRECTUS_API_TOKEN = st.secrets.get("DIRECTUS_API_TOKEN")
 
 # Function to fetch data from Directus
 def fetch_from_directus(collection_name):
@@ -172,7 +167,7 @@ def load_slots_data():
 with st.spinner("Fetching data from Directus..."):
     # Check if API token is available
     if not DIRECTUS_API_TOKEN:
-        st.error("Directus API token not found. Please set the DIRECTUS_API_TOKEN environment variable.")
+        st.error("Directus API token not found. Please set the DIRECTUS_API_TOKEN in .streamlit/secrets.toml file.")
         st.stop()
     
     # Load data
@@ -342,7 +337,7 @@ try:
     
     # Calculate payment method percentages
     payment_counts = df['payment_method'].value_counts()
-    kort_percentage = round((payment_counts.get('Kort', 0) / total_bookings) * 100, 1) if total_bookings > 0 else 0
+    kort_percentage = round((payment_counts.get('Periodkort/klippkort', 0) / total_bookings) * 100, 1) if total_bookings > 0 else 0
     
     # Calculate full bookings (10 seats)
     if 'booked_seats' in df.columns:
@@ -365,7 +360,7 @@ try:
         st.metric("Andel platser i fullbokningar", f"{seats_in_full_bookings} ({seats_in_full_percentage}%)")
     with col3:
         st.metric("Total beläggning", f"{total_utilization}%")
-        st.metric("Bokningar med Periodkort/Klippkort", f"{kort_percentage}%")
+        st.metric("Bokningar med Periodkort/klippkort", f"{kort_percentage}%")
     
     # Additional insights
     with st.expander("Mer information"):
@@ -475,14 +470,14 @@ try:
                          labels={'payment_method': 'Betalningsmetod', 'count': 'Antal bokningar'})
     st.plotly_chart(fig_payment)
     
-    # Kort Analysis
-    st.header("Kort per typ")
+    # Periodkort/klippkort Analysis
+    st.header("Periodkort/klippkort per typ")
     if 'type' in coupons_df.columns:
         kort_usage = coupons_df.groupby(['type']).size().reset_index(name='count')
         
         fig_kort_type = px.bar(kort_usage, x='type', y='count',
                              labels={'type': 'Korttyp', 'count': 'Antal kort'},
-                             title='Antal kort per typ')
+                             title='Antal periodkort/klippkort per typ')
         st.plotly_chart(fig_kort_type)
     
     
@@ -494,7 +489,6 @@ try:
     try:
         # Ensure slots_df has the required columns with appropriate types
         if 'year' not in slots_df.columns or 'month' not in slots_df.columns:
-            st.sidebar.write("Adding missing year/month columns to slots data")
             if 'start_time' in slots_df.columns:
                 slots_df['start_time'] = pd.to_datetime(slots_df['start_time'], errors='coerce')
                 slots_df['year'] = slots_df['start_time'].dt.year
@@ -511,7 +505,6 @@ try:
         
         # Process bookings data if it exists
         if 'bookings' in slots_df.columns and 'used_seats' not in slots_df.columns:
-            st.sidebar.write("Calculating used_seats from bookings")
             # Function to safely count booked seats
             def count_booked_seats(bookings):
                 if not isinstance(bookings, list) or len(bookings) == 0:
@@ -545,7 +538,6 @@ try:
         )
     except Exception as e:
         st.error(f"Error in utilization calculations: {str(e)}")
-        st.sidebar.write(f"Detailed error: {str(e)}")
         
         # Create fallback dataframe
         monthly_slots = pd.DataFrame({
@@ -620,7 +612,6 @@ try:
 
 except Exception as e:
     st.error(f"An error occurred while processing the data: {str(e)}")
-    st.sidebar.write("Error details:", str(e))
 
 st.markdown("---")
 st.markdown("Data hämtad från Directus API: cms.falkenbergskallbad.se")
