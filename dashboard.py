@@ -1,7 +1,6 @@
 import streamlit as st
 import pandas as pd
 import plotly.express as px
-import calendar
 import requests
 
 # Directus API configuration
@@ -277,7 +276,23 @@ try:
     df['month'] = df['slot_start_time'].dt.month
     df['year'] = df['slot_start_time'].dt.year # Extract year for chronological sorting
     df['week'] = df['slot_start_time'].dt.isocalendar().week
-    df['day_of_week'] = df['slot_start_time'].dt.day_name(locale='sv_SE') # Swedish day names
+    
+    # Safer way to handle day names - fallback to English if Swedish locale fails
+    try:
+        df['day_of_week'] = df['slot_start_time'].dt.day_name(locale='sv_SE') # Try Swedish day names
+    except:
+        # If Swedish locale fails, use English and manually translate
+        eng_to_swedish = {
+            'Monday': 'Måndag',
+            'Tuesday': 'Tisdag',
+            'Wednesday': 'Onsdag',
+            'Thursday': 'Torsdag',
+            'Friday': 'Fredag',
+            'Saturday': 'Lördag',
+            'Sunday': 'Söndag'
+        }
+        df['day_of_week'] = df['slot_start_time'].dt.day_name().map(eng_to_swedish)
+    
     df['hour_of_day'] = df['slot_start_time'].dt.hour
     
     # Check if coupon field exists
@@ -376,7 +391,23 @@ try:
         # If no booked_seats, count bookings instead
         monthly_bookings = df.groupby(['year', 'month']).size().reset_index(name='booked_seats')
     
-    monthly_bookings['month_name'] = monthly_bookings['month'].apply(lambda x: calendar.month_name[x].capitalize())
+    # Swedish month names - independent of locale
+    swedish_months = {
+        1: 'Januari',
+        2: 'Februari',
+        3: 'Mars',
+        4: 'April',
+        5: 'Maj',
+        6: 'Juni',
+        7: 'Juli',
+        8: 'Augusti',
+        9: 'September',
+        10: 'Oktober',
+        11: 'November',
+        12: 'December'
+    }
+    
+    monthly_bookings['month_name'] = monthly_bookings['month'].map(swedish_months)
     monthly_bookings['month_year'] = monthly_bookings['month_name'] + ' ' + monthly_bookings['year'].astype(str)
     monthly_bookings['month_order'] = monthly_bookings['year'] * 12 + monthly_bookings['month'] # For chronological sorting
     
@@ -549,8 +580,8 @@ try:
             'utilization_rate': [50, 60]
         })
     
-    # Format for display
-    monthly_slots['month_name'] = monthly_slots['month'].apply(lambda x: calendar.month_name[x].capitalize())
+    # Format for display - using Swedish month names
+    monthly_slots['month_name'] = monthly_slots['month'].map(swedish_months)  # Reuse swedish_months dictionary defined earlier
     monthly_slots['month_year'] = monthly_slots['month_name'] + ' ' + monthly_slots['year'].astype(str)
     monthly_slots['month_order'] = monthly_slots['year'] * 12 + monthly_slots['month']
     
