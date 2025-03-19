@@ -184,8 +184,7 @@ col1, col2 = st.columns([1, 4])
 with col1:
     st.image("https://cms.falkenbergskallbad.se/assets/ff137a4a-f3c0-42f2-a241-c490f6d2fb1d", width=120)
 with col2:
-    st.title("Falkenbergs Kallbad Boknings Dashboard") # Swedish title
-    st.markdown("En dashboard för att visualisera bokningsdata för en bastu.")
+    st.title("Falkenbergs Kallbad") # Swedish title
 
 # Attempt to process the data based on the fields we have
 try:
